@@ -8,6 +8,33 @@ from benchreg.runner import run_suite
 
 
 class RunnerTests(unittest.TestCase):
+    def test_missing_executable_is_reported_and_next_case_runs(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
+            root = Path(temp)
+            suite = root / 'suite.json'
+            suite.write_text(json.dumps({'schema_version': 1, 'benchmarks': [
+                {'id': 'missing', 'command': [str(root / 'no-such-executable')]},
+                {'id': 'next', 'command': [sys.executable, '-c', "print('ok')"]}
+            ]}), encoding='utf-8')
+            report = run_suite(suite, root / 'out')
+            self.assertEqual(report['cases'][0]['status'], 'failed')
+            self.assertTrue(report['cases'][0]['runs'][0]['launch_error'])
+            self.assertEqual(report['cases'][1]['status'], 'new')
+
+    def test_invalid_id_and_nonfinite_timeout_are_rejected(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
+            root = Path(temp)
+            suite = root / 'suite.json'
+            for invalid_case in (
+                {'id': '../escape', 'command': [sys.executable]},
+                {'id': 'bad', 'command': [sys.executable], 'timeout_seconds': float('nan')},
+            ):
+                with self.subTest(case=invalid_case):
+                    suite.write_text(json.dumps({'schema_version': 1, 'benchmarks': [invalid_case]}),
+                                     encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        run_suite(suite, root / 'out')
+
     def test_runs_commands_and_writes_reports(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
             root = Path(temp)

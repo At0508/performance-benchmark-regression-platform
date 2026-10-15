@@ -40,6 +40,16 @@ This first version captures the host's OS, architecture, processor string, and P
 
 ## Test
 
+The [recorded regression experiment](docs/results/controlled_regression_2026-10-15.json) detected a deliberately slower command at a 25% threshold: the measured process median rose from 227.385 ms to 475.680 ms, a 109.2% increase. This experiment explicitly increases a sleep from 150 ms to 400 ms; it demonstrates detection and is not an application optimization or hardware performance claim. Both sets of raw samples and host information are retained.
+
+Reproduce the detection check after installation:
+
+```bash
+python examples/verify_regressions.py --output-dir results/verification
+```
+
+Unit checks cover successful reports, baseline comparison, timeout, nonzero exit, a missing executable followed by a successful case, and invalid inputs. Missing programs are recorded as failed cases so the rest of the suite can complete. CI also runs the sample suite and publishes the generated reports as an artifact.
+
 ```bash
 python -m unittest discover -s tests -v
 ```

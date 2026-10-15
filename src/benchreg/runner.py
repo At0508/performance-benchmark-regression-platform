@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import os
 import platform
 import re
@@ -41,6 +42,8 @@ def _validate_suite(suite: Any) -> None:
         case_id, command = case.get("id"), case.get("command")
         if not isinstance(case_id, str) or not case_id.strip() or case_id in seen:
             raise ValueError("benchmark ids must be non-empty and unique")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", case_id):
+            raise ValueError("benchmark ids must use letters, digits, dots, underscores or hyphens")
         seen.add(case_id)
         if (not isinstance(command, list) or not command or
                 not all(isinstance(arg, str) and arg for arg in command)):
@@ -54,7 +57,7 @@ def _validate_suite(suite: Any) -> None:
             if not isinstance(value, int) or value < (0 if field == "warmups" else 1):
                 raise ValueError(f"{case_id}: {field} has an invalid value")
         timeout = case.get("timeout_seconds", 120)
-        if not isinstance(timeout, (int, float)) or timeout <= 0:
+        if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError(f"{case_id}: timeout_seconds must be positive")
         expected = case.get("expected_exit_code", 0)
         if not isinstance(expected, int):
@@ -80,6 +83,7 @@ def _text(value: str | bytes | None) -> str:
 def _invoke(command: list[str], cwd: Path, timeout: float, log_path: Path) -> dict[str, Any]:
     started = time.perf_counter()
     timed_out = False
+    launch_error = None
     try:
         completed = subprocess.run(
             command, cwd=cwd, capture_output=True, text=True, encoding="utf-8",
@@ -90,6 +94,9 @@ def _invoke(command: list[str], cwd: Path, timeout: float, log_path: Path) -> di
     except subprocess.TimeoutExpired as exc:
         timed_out = True
         stdout, stderr, code = _text(exc.stdout), _text(exc.stderr), None
+    except OSError as exc:
+        launch_error = str(exc)
+        stdout, stderr, code = "", launch_error, None
     elapsed_ms = (time.perf_counter() - started) * 1000.0
     log_path.parent.mkdir(parents=True, exist_ok=True)
     truncated = len(stdout) > LOG_LIMIT or len(stderr) > LOG_LIMIT
@@ -99,6 +106,7 @@ def _invoke(command: list[str], cwd: Path, timeout: float, log_path: Path) -> di
     )
     return {"elapsed_ms": elapsed_ms, "return_code": code,
             "timed_out": timed_out, "log_file": str(log_path),
+            "launch_error": launch_error,
             "log_truncated": truncated}
 
 
@@ -122,7 +130,7 @@ def run_suite(suite_path: Path, output_dir: Path, baseline_path: Path | None = N
     raw_config = suite_path.read_bytes()
     suite = json.loads(raw_config.decode("utf-8"))
     _validate_suite(suite)
-    if threshold < 0 or threshold >= 1:
+    if not math.isfinite(threshold) or threshold < 0 or threshold >= 1:
         raise ValueError("threshold must be in [0, 1)")
     baseline_cases: dict[str, dict] = {}
     if baseline_path is not None:

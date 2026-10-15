@@ -1,0 +1,35 @@
+{
+  "created_at_utc": "2026-10-15T14:27:14.495618+00:00",
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.13",
+    "processor": "AMD64 Family 23 Model 104 Stepping 1, AuthenticAMD"
+  },
+  "experiment": "Deliberately increase sleep from 150 ms to 400 ms; includes process startup.",
+  "threshold": 0.25,
+  "baseline": {
+    "samples_ms": [
+      217.5059999935911,
+      217.68270000029588,
+      227.3849999983213,
+      230.49750000063796,
+      230.1039000012679
+    ],
+    "median_ms": 227.3849999983213,
+    "mad_ms": 3.112500002316665
+  },
+  "slower": {
+    "samples_ms": [
+      475.6803999989643,
+      483.33419999835314,
+      466.0522999984096,
+      487.316999999166,
+      472.2595999992336
+    ],
+    "median_ms": 475.6803999989643,
+    "mad_ms": 7.653799999388866,
+    "relative_change": 1.0919603316070807,
+    "status": "regression"
+  },
+  "detected": true
+}
