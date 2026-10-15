@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "name": "sample CPU workloads",
+  "seed": 2026,
+  "benchmarks": [
+    {
+      "id": "pairwise-small",
+      "description": "Deterministic nested-loop workload, size 128",
+      "command": ["{python}", "{repo}/examples/workload.py", "--size", "128", "--repeats", "400", "--seed", "{seed}"],
+      "warmups": 1,
+      "repetitions": 5,
+      "timeout_seconds": 30,
+      "expected_exit_code": 0
+    },
+    {
+      "id": "pairwise-medium",
+      "description": "Deterministic nested-loop workload, size 192",
+      "command": ["{python}", "{repo}/examples/workload.py", "--size", "192", "--repeats", "300", "--seed", "{seed}"],
+      "warmups": 1,
+      "repetitions": 5,
+      "timeout_seconds": 30,
+      "expected_exit_code": 0
+    }
+  ]
+}
